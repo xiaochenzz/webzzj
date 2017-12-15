@@ -94,7 +94,7 @@ async def response_factory(app, handler):
         if isinstance(r, int) and r >= 100 and r < 600:
             return web.Response(r)
         if isinstance(r, tuple) and len(r) == 2:
-            t,m = r
+            t, m = r
             if isinstance(t, int) and t >= 100 and t < 600:
                 return web.Response(t, str(m))
         resp = web.Response(body=str(r).encode('utf-8'))
@@ -118,13 +118,13 @@ def datatime_filter(t):
 
 
 async def init(loop):
-    await orm.create_pool(loop=loop, host='localhost', port=3306, user='www-data', password='', db='awesome')
+    await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='root', password='', db='awesome')
     app = web.Application(loop=loop, middlewares=[
                           logger_factory, response_factory])
     init_jinja2(app, filters=dict(datatime=datatime_filter))
     add_routes(app, 'test-handlers')
     add_static(app)
-    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9001)
     logging.info('server started at http://127.0.0.1:9000...')
     return srv
 
