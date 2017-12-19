@@ -14,6 +14,7 @@ import asyncio
 import os
 import json
 import time
+import orm
 
 from datetime import datetime
 
@@ -21,8 +22,6 @@ from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
 from config import configs
-
-import orm
 
 from coroweb import add_routes, add_static
 
@@ -52,7 +51,6 @@ async def logger_factory(app, handler):
         # await asyncio.sleep(0.3)
         return (await handler(request))
     return logger
-
 
 
 async def auth_factory(app, handler):
@@ -138,19 +136,17 @@ def datetime_filter(t):
     return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 
-# host='127.0.0.1', port=3306, user='root', password='', db='awesome'
-
-
 async def init(loop):
     await orm.create_pool(loop=loop, **configs.db)
     app = web.Application(loop=loop, middlewares=[
-                          logger_factory,auth_factory,response_factory])
+                          logger_factory, auth_factory, response_factory])
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
-    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9001)
-    logging.info('server started at http://127.0.0.1:9000...')
+    srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9006)
+    logging.info('server started at http://127.0.0.1:9006...')
     return srv
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(init(loop))
