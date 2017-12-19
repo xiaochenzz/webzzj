@@ -14,7 +14,7 @@ import asyncio
 import os
 import json
 import time
-import orm
+
 
 from datetime import datetime
 
@@ -23,6 +23,8 @@ from jinja2 import Environment, FileSystemLoader
 
 from config import configs
 
+import orm
+
 from coroweb import add_routes, add_static
 
 from handlers import cookie2user, COOKIE_NAME
@@ -30,8 +32,14 @@ from handlers import cookie2user, COOKIE_NAME
 
 def init_jinja2(app, **kw):
     logging.info('init jinja2....')
-    options = dict(autoescape=kw.get('autoescape', True), block_start_string=kw.get('block_start_string', '{%'), block_end_string=kw.get('block_end_string', '%}'), variable_start_string=kw.get(
-        'variable_start_string', '{{'), variable_end_string=kw.get('variable_end_string0', '}}'), auto_reload=kw.get('auto_reload', True))
+    options = dict(
+        autoescape = kw.get('autoescape', True),
+        block_start_string = kw.get('block_start_string', '{%'),
+        block_end_string = kw.get('block_end_string', '%}'),
+        variable_start_string = kw.get ('variable_start_string', '{{'),
+        variable_end_string = kw.get('variable_end_string0', '}}'),
+        auto_reload = kw.get('auto_reload', True)
+    )
     path = kw.get('path', None)
     if path is None:
         path = os.path.join(os.path.dirname(
@@ -101,17 +109,16 @@ async def response_factory(app, handler):
         if isinstance(r, dict):
             template = r.get('__template__')
             if template is None:
-                resp = web.Response(body=json.dumps(
-                    r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
+                resp = web.Response(body=json.dumps(r, ensure_ascii=False,default=lambda o: o.__dict__).encode('utf-8'))
                 resp.content_type = 'application/json;charset=utf-8'
                 return resp
             else:
-                resp = web.Response(body=app['__templating__'].get_template(
-                    template).render(**r).encode('utf-8'))
+                r['__user__'] = request.__user__
+                resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
                 resp.content_type = 'text/html;charset=utf-8'
                 return resp
-        if isinstance(r, int) and r >= 100 and r < 600:
-            return web.Response(r)
+        if isinstance(r, int) and t >= 100 and t < 600:
+            return web.Response(t)
         if isinstance(r, tuple) and len(r) == 2:
             t, m = r
             if isinstance(t, int) and t >= 100 and t < 600:
@@ -138,8 +145,7 @@ def datetime_filter(t):
 
 async def init(loop):
     await orm.create_pool(loop=loop, **configs.db)
-    app = web.Application(loop=loop, middlewares=[
-                          logger_factory, auth_factory, response_factory])
+    app = web.Application(loop=loop, middlewares=[logger_factory, auth_factory, response_factory])
     init_jinja2(app, filters=dict(datetime=datetime_filter))
     add_routes(app, 'handlers')
     add_static(app)
