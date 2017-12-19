@@ -78,19 +78,18 @@ async def cookie2user(cookie_str):
 
 
 @get('/')
-async def index(*, page='1', request):
+async def index(*, page='1'):
     page_index = get_page_index(page)
     num = await Blog.findNumber('count(id)')
-    page = Page(num)
+    page = Page(num, page_index)
     if num == 0:
         blogs = []
     else:
-        blogs = await Blog.findAll(orderBy='created_at desc', limit= (page.offset, page.limit))
+        blogs = await Blog.findAll(orderBy='created_at desc', limit=(page.offset, page.limit))
     return {
         '__template__': 'blogs.html',
         'page': page,
-        'blogs': blogs,
-        '__user__': request.__user__
+        'blogs': blogs
     }
 
 
@@ -125,9 +124,9 @@ def signin():
 @post('/api/authenticate')
 async def authenticate(*, email, passwd):
     if not email:
-        raise APIValueError('email', 'invalid email')
+        raise APIValueError('email', 'Invalid email.')
     if not passwd:
-        raise APIValueError('passwd', 'invalid passwd')
+        raise APIValueError('passwd', 'Invalid passwd.')
     users = await User.findAll('email=?', [email])
     if len(users) == 0:
         raise APIValueError('email', 'email not exist.')
@@ -137,10 +136,9 @@ async def authenticate(*, email, passwd):
     sha1.update(b':')
     sha1.update(passwd.encode('utf-8'))
     if user.passwd != sha1.hexdigest():
-        raise APIValueError('passwd', 'invalid password.')
+        raise APIValueError('passwd', 'Invalid password.')
     r = web.Response()
-    r.set_cookie(COOKIE_NAME, user2cookie(
-        user, 86400), max_age=86400, httponly=True)
+    r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400,httponly=True)
     user.passwd = '******'
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
@@ -178,12 +176,11 @@ def manage_blogs(*, page='1'):
 
 
 @get('/manage/blogs/create')
-def manage_create_blog(request):
+def manage_create_blog():
     return {
         '__template__': 'manage_blog_edit.html',
         'id': '',
-        'action': '/api/blogs',
-        '__user__': request.__user__
+        'action': '/api/blogs'
     }
 
 
@@ -276,8 +273,7 @@ async def api_register_user(*, email, name, passwd):
     await user.save()
     # make session cookie:
     r = web.Response()
-    r.set_cookie(COOKIE_NAME, user2cookie(
-        user, 86400), max_age=86400, httponly=True)
+    r.set_cookie(COOKIE_NAME, user2cookie(user, 86400), max_age=86400, httponly=True)
     user.passwd = '******'
     r.content_type = 'application/json'
     r.body = json.dumps(user, ensure_ascii=False).encode('utf-8')
